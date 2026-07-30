@@ -1053,4 +1053,111 @@ router.delete("/why/:id", verifyToken, verifyAdmin, (req,res)=>{
 
 
 
+// ==========================================
+// ABOUT PAGE (PUBLIC ABOUT-US PAGE)
+// ==========================================
+
+// GET ADMIN
+router.get("/about-page", verifyToken, verifyAdmin, (req, res) => {
+
+    db.query(
+
+        "SELECT * FROM about_page LIMIT 1",
+
+        (err, results) => {
+
+            if (err) return res.status(500).json(err);
+
+            res.json(results[0] || {});
+
+        }
+
+    );
+
+});
+
+
+// GET PUBLIC
+router.get("/public/about-page", (req, res) => {
+
+    db.query(
+
+        "SELECT * FROM about_page LIMIT 1",
+
+        (err, results) => {
+
+            if (err) return res.status(500).json(err);
+
+            res.json(results[0] || {});
+
+        }
+
+    );
+
+});
+
+
+// UPDATE
+router.put("/about-page", verifyToken, verifyAdmin, (req, res) => {
+
+    const {
+
+        heading,
+        subtitle,
+        description,
+        image,
+        mission,
+        vision,
+        values_text
+
+    } = req.body;
+
+    db.query(
+
+        `UPDATE about_page
+         SET
+            heading=?,
+            subtitle=?,
+            description=?,
+            image=?,
+            mission=?,
+            vision=?,
+            values_text=?
+         WHERE id=1`,
+
+        [
+            heading,
+            subtitle,
+            description,
+            image,
+            mission,
+            vision,
+            values_text
+        ],
+
+        (err) => {
+
+            if (err) {
+
+                console.log(err);
+
+                return res.status(500).json(err);
+
+            }
+
+            res.json({
+
+                success:true,
+                message:"About page updated successfully."
+
+            });
+
+        }
+
+    );
+
+});
+
+
+
 module.exports = router;
