@@ -6,6 +6,60 @@ const db = require("../config/db");
 const verifyToken = require("../middleware/authMiddleware");
 const verifyAdmin = require("../middleware/adminMiddleware");
 
+
+
+// ========================================
+// GET PUBLIC WEBSITE SETTINGS
+// ========================================
+
+router.get("/public", (req, res) => {
+
+    db.query(
+        `SELECT
+            company_name,
+            address,
+            phone,
+            email,
+            website,
+            facebook,
+            linkedin,
+            instagram,
+            youtube,
+            logo
+         FROM settings
+         WHERE id = 1
+         LIMIT 1`,
+        (err, results) => {
+
+            if (err) {
+                console.error("Public Settings Error:", err);
+
+                return res.status(500).json({
+                    success: false,
+                    message: "Unable to load website settings."
+                });
+            }
+
+            if (results.length === 0) {
+
+                return res.status(404).json({
+                    success: false,
+                    message: "Website settings not found."
+                });
+
+            }
+
+            res.json({
+                success: true,
+                settings: results[0]
+            });
+
+        }
+    );
+
+});
+
+
 // ========================================
 // GET WEBSITE SETTINGS
 // ========================================

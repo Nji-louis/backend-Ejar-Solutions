@@ -9,53 +9,53 @@ const verifyAdmin = require("../middleware/adminMiddleware");
 // ==========================
 // GET ALL TESTIMONIALS
 // ==========================
-
-router.get("/", (req, res) => {
+router.get("/public", (req, res) => {
 
     db.query(
-        "SELECT * FROM testimonials ORDER BY created_at DESC",
+
+        "SELECT * FROM testimonials WHERE status='active' ORDER BY id ASC",
+
         (err, results) => {
 
-            if (err) {
-                return res.status(500).json(err);
-            }
+            if (err) return res.status(500).json(err);
 
             res.json(results);
 
         }
+
     );
 
 });
 
+
 // ==========================
-// GET SINGLE TESTIMONIAL
+// GET ALL TESTIMONIALS
+// ADMIN ONLY
 // ==========================
 
-router.get("/:id", (req, res) => {
+router.get(
+    "/",
+    verifyToken,
+    verifyAdmin,
+    (req, res) => {
 
-    db.query(
-        "SELECT * FROM testimonials WHERE id=?",
-        [req.params.id],
-        (err, results) => {
+        db.query(
+            "SELECT * FROM testimonials ORDER BY id ASC",
+            (err, results) => {
 
-            if (err) {
-                return res.status(500).json(err);
+                if (err) {
+                    console.error("Testimonials Admin Error:", err);
+                    return res.status(500).json(err);
+                }
+
+                res.json(results);
+
             }
+        );
 
-            if (results.length === 0) {
+    }
+);
 
-                return res.status(404).json({
-                    message: "Testimonial not found"
-                });
-
-            }
-
-            res.json(results[0]);
-
-        }
-    );
-
-});
 
 // ==========================
 // CREATE TESTIMONIAL
