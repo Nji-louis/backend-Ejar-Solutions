@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 
 const db = require("../config/db");
+const bcrypt = require("bcryptjs");
 
 const verifyToken = require("../middleware/authMiddleware");
 const verifyAdmin = require("../middleware/adminMiddleware");
@@ -64,6 +65,120 @@ router.get(
     );
 
   }
+);
+
+
+// =====================================
+// CREATE USER
+// ADMIN ONLY
+// =====================================
+
+router.post(
+    "/",
+    verifyToken,
+    verifyAdmin,
+    async (req, res) => {
+
+        try {
+
+            const {
+                name,
+                email,
+                password,
+                role
+            } = req.body;
+
+            // Basic validation
+            if (!name || !email || !password || !role) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Name, email, password and role are required"
+                });
+            }
+
+            // Only allow these roles
+            if (!["admin", "editor"].includes(role)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid user role"
+                });
+            }
+
+            // Check whether email already exists
+            db.query(
+                "SELECT id FROM users WHERE email = ? LIMIT 1",
+                [email],
+                async (err, results) => {
+
+                    if (err) {
+                        console.error("Check User Error:", err);
+
+                        return res.status(500).json({
+                            success: false,
+                            message: "Database error"
+                        });
+                    }
+
+                    if (results.length > 0) {
+                        return res.status(409).json({
+                            success: false,
+                            message: "A user with this email already exists"
+                        });
+                    }
+
+                    const hashedPassword =
+                        await bcrypt.hash(password, 10);
+
+                    db.query(
+                        `INSERT INTO users
+                        (name, email, password, role)
+                        VALUES (?, ?, ?, ?)`,
+                        [
+                            name,
+                            email,
+                            hashedPassword,
+                            role
+                        ],
+                        (err, result) => {
+
+                            if (err) {
+                                console.error("Create User Error:", err);
+
+                                return res.status(500).json({
+                                    success: false,
+                                    message: "Unable to create user"
+                                });
+                            }
+
+                            res.status(201).json({
+                                success: true,
+                                message: "User created successfully",
+                                user: {
+                                    id: result.insertId,
+                                    name,
+                                    email,
+                                    role
+                                }
+                            });
+
+                        }
+                    );
+
+                }
+            );
+
+        } catch (error) {
+
+            console.error("Create User Error:", error);
+
+            res.status(500).json({
+                success: false,
+                message: "Server error"
+            });
+
+        }
+
+    }
 );
 
 // =====================================
