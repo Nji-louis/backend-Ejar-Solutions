@@ -58,6 +58,47 @@ router.get(
 
 
 // ==========================
+// GET SINGLE TESTIMONIAL
+// ADMIN ONLY
+// ==========================
+
+router.get(
+    "/:id",
+    verifyToken,
+    verifyAdmin,
+    (req, res) => {
+
+        db.query(
+            "SELECT * FROM testimonials WHERE id = ? LIMIT 1",
+            [req.params.id],
+            (err, results) => {
+
+                if (err) {
+                    console.error("Get Testimonial Error:", err);
+
+                    return res.status(500).json({
+                        success: false,
+                        message: "Database error"
+                    });
+                }
+
+                if (results.length === 0) {
+                    return res.status(404).json({
+                        success: false,
+                        message: "Testimonial not found"
+                    });
+                }
+
+                res.json(results[0]);
+
+            }
+        );
+
+    }
+);
+
+
+// ==========================
 // CREATE TESTIMONIAL
 // ==========================
 
