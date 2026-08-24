@@ -1,5 +1,6 @@
 const verifyToken = require("../middleware/authMiddleware");
-const verifyAdmin = require("../middleware/adminMiddleware");
+const verifyAdmin =require("../middleware/adminMiddleware");
+const verifyEditorOrAdmin =require("../middleware/editorMiddleware");
 const express = require("express");
 const router = express.Router();
 const sendEmail = require("../utils/sendEmail");

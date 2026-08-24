@@ -3,8 +3,8 @@ const router = express.Router();
 const db = require("../config/db");
 
 const verifyToken = require("../middleware/authMiddleware");
-const verifyAdmin = require("../middleware/adminMiddleware");
-const verifyEditorOrAdmin = require("../middleware/editorMiddleware");
+const verifyAdmin =require("../middleware/adminMiddleware");
+const verifyEditorOrAdmin =require("../middleware/editorMiddleware");
 
 // ========================================
 // GET ALL IMAGES
