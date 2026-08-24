@@ -8,6 +8,10 @@ const verifyToken = require("../middleware/authMiddleware");
 
 const verifyAdmin = require("../middleware/adminMiddleware");
 
+const verifyEditorOrAdmin =
+    require("../middleware/editorMiddleware");
+
+
 router.get("/test", (req, res) => {
     res.json({
         success: true,
@@ -22,7 +26,7 @@ router.get("/test", (req, res) => {
 router.get(
   "/dashboard",
   verifyToken,
-  verifyAdmin,
+   verifyEditorOrAdmin,
   async (req, res) => {
 
     try {
