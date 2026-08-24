@@ -5,6 +5,7 @@ const db = require("../config/db");
 
 const verifyToken = require("../middleware/authMiddleware");
 const verifyAdmin = require("../middleware/adminMiddleware");
+const verifyEditorOrAdmin = require("../middleware/editorMiddleware");
 
 // ==========================
 // GET ALL BLOG POSTS
