@@ -41,6 +41,19 @@ router.post("/login", (req, res) => {
 
       const user = results[0];
 
+      if (
+  user.status !== "active" ||
+  Number(user.email_verified) !== 1
+) {
+
+  return res.status(403).json({
+    success: false,
+    message:
+      "Please activate your account from the invitation email before logging in."
+  });
+
+}
+
       const validPassword = await bcrypt.compare(
         password,
         user.password
@@ -192,5 +205,186 @@ router.post("/reset-password/:token", async (req, res) => {
     );
 
 });
+
+
+// =====================================
+// ACCEPT USER INVITATION
+// =====================================
+
+router.post(
+  "/accept-invite",
+  async (req, res) => {
+
+    try {
+
+      const {
+        token,
+        password
+      } = req.body;
+
+      if (!token || !password) {
+
+        return res.status(400).json({
+          success: false,
+          message:
+            "Invitation token and password are required."
+        });
+
+      }
+
+      if (password.length < 8) {
+
+        return res.status(400).json({
+          success: false,
+          message:
+            "Password must contain at least 8 characters."
+        });
+
+      }
+
+      // Hash token received from email
+
+      const hashedToken =
+        crypto
+          .createHash("sha256")
+          .update(token)
+          .digest("hex");
+
+      db.query(
+        `
+        SELECT
+          id,
+          name,
+          email,
+          role,
+          status,
+          invite_expires
+        FROM users
+        WHERE invite_token = ?
+        LIMIT 1
+        `,
+        [hashedToken],
+        async (err, results) => {
+
+          if (err) {
+
+            console.error(
+              "Accept Invite Error:",
+              err
+            );
+
+            return res.status(500).json({
+              success: false,
+              message: "Database error."
+            });
+
+          }
+
+          if (results.length === 0) {
+
+            return res.status(400).json({
+              success: false,
+              message:
+                "Invitation link is invalid or has already been used."
+            });
+
+          }
+
+          const user =
+            results[0];
+
+          if (
+            !user.invite_expires ||
+            new Date(user.invite_expires) <
+              new Date()
+          ) {
+
+            return res.status(400).json({
+              success: false,
+              message:
+                "This invitation has expired."
+            });
+
+          }
+
+          if (user.status !== "pending") {
+
+            return res.status(400).json({
+              success: false,
+              message:
+                "This invitation is no longer valid."
+            });
+
+          }
+
+          const hashedPassword =
+            await bcrypt.hash(
+              password,
+              10
+            );
+
+          db.query(
+            `
+            UPDATE users
+            SET
+              password = ?,
+              status = 'active',
+              email_verified = 1,
+              invite_token = NULL,
+              invite_expires = NULL
+            WHERE id = ?
+            `,
+            [
+              hashedPassword,
+              user.id
+            ],
+            (updateErr) => {
+
+              if (updateErr) {
+
+                console.error(
+                  "Activate User Error:",
+                  updateErr
+                );
+
+                return res
+                  .status(500)
+                  .json({
+                    success: false,
+                    message:
+                      "Unable to activate account."
+                  });
+
+              }
+
+              res.json({
+                success: true,
+                message:
+                  "Account activated successfully. You can now log in."
+              });
+
+            }
+          );
+
+        }
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Accept Invitation Error:",
+        error
+      );
+
+      res.status(500).json({
+        success: false,
+        message:
+          "Unable to activate account."
+      });
+
+    }
+
+  }
+);
 
 module.exports = router;

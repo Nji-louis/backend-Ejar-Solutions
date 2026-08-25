@@ -4,6 +4,9 @@ const router = express.Router();
 
 const db = require("../config/db");
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
+
+const sendEmail = require("../utils/sendEmail");
 
 const verifyToken = require("../middleware/authMiddleware");
 const verifyAdmin = require("../middleware/adminMiddleware");
@@ -109,8 +112,10 @@ router.get(
 );
 
 
+
+
 // =====================================
-// CREATE USER
+// INVITE USER
 // ADMIN ONLY
 // =====================================
 
@@ -125,93 +130,257 @@ router.post(
       const {
         name,
         email,
-        password,
         role
       } = req.body;
 
-      if (!name || !email || !password || !role) {
+      // -------------------------
+      // VALIDATION
+      // -------------------------
+
+      if (!name || !email || !role) {
+
         return res.status(400).json({
           success: false,
-          message: "Name, email, password and role are required."
+          message: "Name, email and role are required."
         });
+
       }
 
       if (!["admin", "editor"].includes(role)) {
+
         return res.status(400).json({
           success: false,
           message: "Invalid user role."
         });
+
       }
+
+      const cleanEmail =
+        email.trim().toLowerCase();
+
+      // -------------------------
+      // CHECK EXISTING USER
+      // -------------------------
 
       db.query(
         "SELECT id FROM users WHERE email = ? LIMIT 1",
-        [email],
+        [cleanEmail],
         async (err, results) => {
 
           if (err) {
-            console.error("Check User Error:", err);
+
+            console.error(
+              "Check User Error:",
+              err
+            );
 
             return res.status(500).json({
               success: false,
               message: "Database error."
             });
+
           }
 
           if (results.length > 0) {
+
             return res.status(409).json({
               success: false,
-              message: "A user with this email already exists."
+              message:
+                "A user with this email already exists."
             });
+
           }
 
-          const hashedPassword =
-            await bcrypt.hash(password, 10);
+          try {
 
-          db.query(
-            `INSERT INTO users
-            (name, email, password, role)
-            VALUES (?, ?, ?, ?)`,
-            [
-              name,
-              email,
-              hashedPassword,
-              role
-            ],
-            (err, result) => {
+            // -------------------------
+            // CREATE SECURE TOKEN
+            // -------------------------
 
-              if (err) {
-                console.error("Create User Error:", err);
+            const rawToken =
+              crypto
+                .randomBytes(32)
+                .toString("hex");
 
-                return res.status(500).json({
-                  success: false,
-                  message: "Unable to create user."
-                });
-              }
+            const hashedToken =
+              crypto
+                .createHash("sha256")
+                .update(rawToken)
+                .digest("hex");
 
-              res.status(201).json({
-                success: true,
-                message: "User created successfully.",
-                user: {
-                  id: result.insertId,
-                  name,
-                  email,
-                  role
+            // Invitation valid for 24 hours
+
+            const inviteExpires =
+              new Date(
+                Date.now() +
+                24 * 60 * 60 * 1000
+              );
+
+            /*
+              Password is NOT NULL in your table.
+
+              We therefore create a random unusable
+              temporary password hash.
+
+              The invited user never receives or
+              knows this password.
+
+              It will be replaced when they accept
+              the invitation.
+            */
+
+            const temporaryPassword =
+              crypto
+                .randomBytes(32)
+                .toString("hex");
+
+            const temporaryPasswordHash =
+              await bcrypt.hash(
+                temporaryPassword,
+                10
+              );
+
+            // -------------------------
+            // INSERT PENDING USER
+            // -------------------------
+
+            db.query(
+              `
+              INSERT INTO users
+              (
+                name,
+                email,
+                password,
+                role,
+                status,
+                invite_token,
+                invite_expires,
+                email_verified
+              )
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+              `,
+              [
+                name.trim(),
+                cleanEmail,
+                temporaryPasswordHash,
+                role,
+                "pending",
+                hashedToken,
+                inviteExpires,
+                0
+              ],
+              async (insertErr, result) => {
+
+                if (insertErr) {
+
+                  console.error(
+                    "Invite User Insert Error:",
+                    insertErr
+                  );
+
+                  return res
+                    .status(500)
+                    .json({
+                      success: false,
+                      message:
+                        "Unable to create invitation."
+                    });
+
                 }
+
+                // -------------------------
+                // BUILD INVITATION LINK
+                // -------------------------
+
+                const frontendUrl =
+                  process.env.FRONTEND_URL ||
+                  "https://ejar-solutions.onrender.com";
+
+                const inviteLink =
+                  `${frontendUrl}/admin/accept-invite.html?token=${rawToken}`;
+
+                // -------------------------
+                // SEND EMAIL
+                // -------------------------
+
+                const subject =
+                  "You have been invited to EJAR SOLUTIONS";
+
+                const emailText =
+`Hello ${name},
+
+You have been invited to join the EJAR SOLUTIONS dashboard as an ${role}.
+
+To activate your account and create your password, open the link below:
+
+${inviteLink}
+
+This invitation expires in 24 hours.
+
+If you were not expecting this invitation, you can ignore this email.
+
+Best regards,
+
+EJAR SOLUTIONS`;
+
+                const emailResult =
+                  await sendEmail(
+                    subject,
+                    emailText,
+                    cleanEmail
+                  );
+
+                // -------------------------
+                // RESPONSE
+                // -------------------------
+
+                res.status(201).json({
+                  success: true,
+                  message:
+                    "User invitation created and email sent.",
+                  user: {
+                    id: result.insertId,
+                    name: name.trim(),
+                    email: cleanEmail,
+                    role,
+                    status: "pending"
+                  }
+                });
+
+              }
+            );
+
+          } catch (error) {
+
+            console.error(
+              "Invitation Error:",
+              error
+            );
+
+            return res
+              .status(500)
+              .json({
+                success: false,
+                message:
+                  "Unable to create invitation."
               });
 
-            }
-          );
+          }
 
         }
       );
 
     } catch (error) {
 
-      console.error("Create User Error:", error);
+      console.error(
+        "Invite User Error:",
+        error
+      );
 
       res.status(500).json({
         success: false,
-        message: "Unable to create user."
+        message:
+          "Unable to invite user."
       });
 
     }
