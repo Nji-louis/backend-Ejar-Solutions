@@ -1,11 +1,12 @@
-const verifyToken = require("../middleware/authMiddleware");
-const verifyAdmin =require("../middleware/adminMiddleware");
-const verifyEditorOrAdmin =require("../middleware/editorMiddleware");
 const express = require("express");
 const router = express.Router();
 const sendEmail = require("../utils/sendEmail");
 
 const db = require("../config/db");
+
+const verifyToken = require("../middleware/authMiddleware");
+const verifyAdmin = require("../middleware/adminMiddleware");
+const verifyEditorOrAdmin =require("../middleware/editorMiddleware");
 
 
 
@@ -161,7 +162,7 @@ Business Support Services
 router.get(
     "/",
     verifyToken,
-    verifyAdmin,
+    verifyEditorOrAdmin,
     (req, res) => {
 
         db.query(
@@ -188,7 +189,7 @@ router.get(
 router.get(
     "/:id",
     verifyToken,
-    verifyAdmin,
+    verifyEditorOrAdmin,
     (req, res) => {
 
         db.query(
@@ -225,7 +226,7 @@ router.get(
 router.put(
     "/:id",
     verifyToken,
-    verifyAdmin,
+    verifyEditorOrAdmin,
     (req, res) => {
 
         const { status } = req.body;
@@ -266,7 +267,7 @@ router.put(
 router.post(
     "/:id/reply",
     verifyToken,
-    verifyAdmin,
+    verifyEditorOrAdmin,
     async (req, res) => {
 
         const { subject, message } = req.body;
@@ -369,7 +370,7 @@ Business Support Services
 router.delete(
     "/:id",
     verifyToken,
-    verifyAdmin,
+    verifyEditorOrAdmin,
     (req, res) => {
 
         db.query(

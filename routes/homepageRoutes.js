@@ -5,7 +5,8 @@ const db = require("../config/db");
 
 const verifyToken = require("../middleware/authMiddleware");
 const verifyAdmin =require("../middleware/adminMiddleware");
-const verifyEditorOrAdmin =require("../middleware/editorMiddleware");
+const verifyEditorOrAdmin = require("../middleware/editorMiddleware");
+
 
 
 
@@ -62,7 +63,7 @@ router.get("/public/settings", (req, res) => {
    COUNTERS
 ========================================== */
 
-router.get("/counters", verifyToken, verifyAdmin, (req, res) => {
+router.get("/counters", verifyToken, verifyEditorOrAdmin, (req, res) => {
 
     db.query(
 
@@ -107,7 +108,7 @@ router.get("/public/counters", (req, res) => {
    PARTNERS
 ========================================== */
 
-router.get("/partners", verifyToken, verifyAdmin, (req, res) => {
+router.get("/partners", verifyToken, verifyEditorOrAdmin, (req, res) => {
 
     db.query(
 
@@ -145,7 +146,7 @@ router.get("/public/partners", (req, res) => {
 });
 
 // CREATE PARTNER
-router.post("/partners", verifyToken, verifyAdmin, (req, res) => {
+router.post("/partners", verifyToken, verifyEditorOrAdmin, (req, res) => {
 
     const {
         name,
@@ -197,7 +198,7 @@ router.post("/partners", verifyToken, verifyAdmin, (req, res) => {
 });
 
 // UPDATE PARTNER
-router.put("/partners/:id", verifyToken, verifyAdmin, (req, res) => {
+router.put("/partners/:id", verifyToken, verifyEditorOrAdmin, (req, res) => {
 
     const {
         name,
@@ -286,7 +287,7 @@ router.delete("/partners/:id", verifyToken, verifyAdmin, (req, res) => {
 router.get(
 "/counters",
 verifyToken,
-verifyAdmin,
+verifyEditorOrAdmin,
 (req,res)=>{
 
 
@@ -324,7 +325,7 @@ router.post(
 
 verifyToken,
 
-verifyAdmin,
+verifyEditorOrAdmin,
 
 (req,res)=>{
 
@@ -406,7 +407,7 @@ router.put(
 
 verifyToken,
 
-verifyAdmin,
+verifyEditorOrAdmin,
 
 (req,res)=>{
 

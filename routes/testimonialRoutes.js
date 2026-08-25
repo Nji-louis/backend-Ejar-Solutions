@@ -4,7 +4,6 @@ const router = express.Router();
 const db = require("../config/db");
 
 const verifyToken = require("../middleware/authMiddleware");
-const verifyAdmin =require("../middleware/adminMiddleware");
 const verifyEditorOrAdmin =require("../middleware/editorMiddleware");
 
 // ==========================
@@ -37,7 +36,7 @@ router.get("/public", (req, res) => {
 router.get(
     "/",
     verifyToken,
-    verifyAdmin,
+    verifyEditorOrAdmin,
     (req, res) => {
 
         db.query(
@@ -66,7 +65,7 @@ router.get(
 router.get(
     "/:id",
     verifyToken,
-    verifyAdmin,
+    verifyEditorOrAdmin,
     (req, res) => {
 
         db.query(
@@ -106,7 +105,7 @@ router.get(
 router.post(
     "/",
     verifyToken,
-    verifyAdmin,
+   verifyEditorOrAdmin,
     (req, res) => {
 
         const {
@@ -169,7 +168,7 @@ router.post(
 router.put(
     "/:id",
     verifyToken,
-    verifyAdmin,
+    verifyEditorOrAdmin,
     (req, res) => {
 
         const {
@@ -232,7 +231,7 @@ router.put(
 router.delete(
     "/:id",
     verifyToken,
-    verifyAdmin,
+    verifyEditorOrAdmin,
     (req, res) => {
 
         db.query(
