@@ -185,7 +185,7 @@ const inviteExpires =
               password,
               role,
               status,
-              invite_token,
+              hashedInviteToken,
               invite_expires,
               email_verified
             )
@@ -197,7 +197,7 @@ const inviteExpires =
               hashedTemporaryPassword,
               role,
               "pending",
-              hashedInviteToken,
+              inviteToken,
               inviteExpires,
               0
             ],
@@ -211,7 +211,7 @@ const inviteExpires =
               }
 
               const inviteLink =
-                `https://ejar-solutions-main.onrender.com/admin/accept-invite.html?token=${inviteToken}`;
+                `https://ejar-solutions.onrender.com/admin/accept-invite.html?token=${inviteToken}`;
 
               const emailResult = await sendEmail(
                 "You're invited to EJAR SOLUTIONS",

@@ -90,121 +90,452 @@ router.post("/login", (req, res) => {
 
 
 
+
+// =====================================
+// FORGOT PASSWORD
+// =====================================
+
 router.post("/forgot-password", (req, res) => {
 
-    const { email } = req.body;
+  const { email } = req.body;
 
-    db.query(
-        "SELECT * FROM users WHERE email = ?",
-        [email],
-        async (err, results) => {
+  if (!email) {
+    return res.status(400).json({
+      success: false,
+      message: "Email address is required."
+    });
+  }
 
-            if (err) {
-                return res.status(500).json(err);
-            }
+  db.query(
+    "SELECT id, name, email FROM users WHERE email = ? LIMIT 1",
+    [email],
+    async (err, results) => {
 
-            if (results.length === 0) {
-                return res.status(404).json({
-                    message: "User not found"
-                });
-            }
+      if (err) {
+        console.error("Forgot Password DB Error:", err);
 
-            const token = crypto.randomBytes(32).toString("hex");
+        return res.status(500).json({
+          success: false,
+          message: "Database error."
+        });
+      }
 
-            const expiry = new Date(
-                Date.now() + 60 * 60 * 1000
+      if (results.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "No account was found with this email address."
+        });
+      }
+
+      const user = results[0];
+
+      // Generate secure random token
+      const resetToken =
+        crypto.randomBytes(32).toString("hex");
+
+      // Hash token before storing it
+      const hashedResetToken =
+        crypto
+          .createHash("sha256")
+          .update(resetToken)
+          .digest("hex");
+
+      // Token expires in 1 hour
+      const resetTokenExpiry =
+        new Date(Date.now() + 60 * 60 * 1000);
+
+      db.query(
+        `
+        UPDATE users
+        SET
+          reset_token = ?,
+          reset_token_expiry = ?
+        WHERE id = ?
+        `,
+        [
+          hashedResetToken,
+          resetTokenExpiry,
+          user.id
+        ],
+        async (updateErr) => {
+
+          if (updateErr) {
+
+            console.error(
+              "Save Reset Token Error:",
+              updateErr
             );
 
-            db.query(
-                "UPDATE users SET reset_token = ?, reset_token_expiry = ? WHERE email = ?",
-                [token, expiry, email],
-                async (err) => {
+            return res.status(500).json({
+              success: false,
+              message: "Unable to create password reset request."
+            });
 
-                    if (err) {
-                        return res.status(500).json(err);
-                    }
+          }
 
-                    const resetLink =
-                        `https://yourfrontend.com/reset-password/${token}`;
+          const resetLink =
+            `https://ejar-solutions-main.onrender.com/admin/reset-password.html?token=${resetToken}`;
 
-                    await sendEmail(
-                        "Password Reset Request",
-                        `Click this link to reset your password:\n\n${resetLink}`
-                    );
+          try {
 
-                    res.json({
-                        success: true,
-                        message: "Password reset email sent"
-                    });
+            await sendEmail(
+              "Reset Your EJAR SOLUTIONS Password",
+              `Hello ${user.name},
 
-                }
+We received a request to reset your EJAR SOLUTIONS dashboard password.
+
+Click the link below to create a new password:
+
+${resetLink}
+
+This link will expire in 1 hour.
+
+If you did not request a password reset, you can safely ignore this email.
+
+Best regards,
+EJAR SOLUTIONS
+Business Support Services`
             );
+
+            console.log(
+              `Password reset email sent to: ${user.email}`
+            );
+
+            return res.json({
+              success: true,
+              message:
+                "Password reset instructions have been sent to your email."
+            });
+
+          } catch (emailError) {
+
+            console.error(
+              "Password Reset Email Error:",
+              emailError
+            );
+
+            return res.status(500).json({
+              success: false,
+              message:
+                "Unable to send password reset email."
+            });
+
+          }
 
         }
-    );
+      );
+
+    }
+  );
 
 });
 
-router.post("/reset-password/:token", async (req, res) => {
 
-    const { token } = req.params;
-    const { password } = req.body;
 
-    db.query(
-        "SELECT * FROM users WHERE reset_token = ?",
-        [token],
-        async (err, results) => {
 
-            if (err) {
-                return res.status(500).json(err);
-            }
 
-            if (results.length === 0) {
-                return res.status(400).json({
-                    message: "Invalid token"
-                });
-            }
+// =====================================
+// FORGOT PASSWORD
+// =====================================
 
-            const user = results[0];
+router.post("/forgot-password", (req, res) => {
 
-            if (new Date() > new Date(user.reset_token_expiry)) {
+  const { email } = req.body;
 
-                return res.status(400).json({
-                    message: "Token expired"
-                });
+  if (!email) {
+    return res.status(400).json({
+      success: false,
+      message: "Email address is required."
+    });
+  }
 
-            }
+  db.query(
+    "SELECT id, name, email FROM users WHERE email = ? LIMIT 1",
+    [email],
+    async (err, results) => {
 
-            const hashedPassword =
-                await bcrypt.hash(password, 10);
+      if (err) {
+        console.error("Forgot Password DB Error:", err);
 
-            db.query(
-                `
-                UPDATE users
-                SET password = ?,
-                    reset_token = NULL,
-                    reset_token_expiry = NULL
-                WHERE id = ?
-                `,
-                [hashedPassword, user.id],
-                (err) => {
+        return res.status(500).json({
+          success: false,
+          message: "Database error."
+        });
+      }
 
-                    if (err) {
-                        return res.status(500).json(err);
-                    }
+      if (results.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "No account was found with this email address."
+        });
+      }
 
-                    res.json({
-                        success: true,
-                        message: "Password reset successful"
-                    });
+      const user = results[0];
 
-                }
+      // Generate secure random token
+      const resetToken =
+        crypto.randomBytes(32).toString("hex");
+
+      // Hash token before storing it
+      const hashedResetToken =
+        crypto
+          .createHash("sha256")
+          .update(resetToken)
+          .digest("hex");
+
+      // Token expires in 1 hour
+      const resetTokenExpiry =
+        new Date(Date.now() + 60 * 60 * 1000);
+
+      db.query(
+        `
+        UPDATE users
+        SET
+          reset_token = ?,
+          reset_token_expiry = ?
+        WHERE id = ?
+        `,
+        [
+          hashedResetToken,
+          resetTokenExpiry,
+          user.id
+        ],
+        async (updateErr) => {
+
+          if (updateErr) {
+
+            console.error(
+              "Save Reset Token Error:",
+              updateErr
             );
 
+            return res.status(500).json({
+              success: false,
+              message: "Unable to create password reset request."
+            });
+
+          }
+
+          const resetLink =
+            `https://ejar-solutions-main.onrender.com/admin/reset-password.html?token=${resetToken}`;
+
+          try {
+
+            await sendEmail(
+              "Reset Your EJAR SOLUTIONS Password",
+              `Hello ${user.name},
+
+We received a request to reset your EJAR SOLUTIONS dashboard password.
+
+Click the link below to create a new password:
+
+${resetLink}
+
+This link will expire in 1 hour.
+
+If you did not request a password reset, you can safely ignore this email.
+
+Best regards,
+EJAR SOLUTIONS
+Business Support Services`
+            );
+
+            console.log(
+              `Password reset email sent to: ${user.email}`
+            );
+
+            return res.json({
+              success: true,
+              message:
+                "Password reset instructions have been sent to your email."
+            });
+
+          } catch (emailError) {
+
+            console.error(
+              "Password Reset Email Error:",
+              emailError
+            );
+
+            return res.status(500).json({
+              success: false,
+              message:
+                "Unable to send password reset email."
+            });
+
+          }
+
         }
-    );
+      );
+
+    }
+  );
 
 });
+
+
+// =====================================
+// RESET PASSWORD
+// =====================================
+
+router.post(
+  "/reset-password/:token",
+  async (req, res) => {
+
+    try {
+
+      const { token } = req.params;
+      const { password } = req.body;
+
+      if (!token || !password) {
+
+        return res.status(400).json({
+          success: false,
+          message:
+            "Reset token and password are required."
+        });
+
+      }
+
+      if (password.length < 8) {
+
+        return res.status(400).json({
+          success: false,
+          message:
+            "Password must contain at least 8 characters."
+        });
+
+      }
+
+      // Hash token received from reset link
+      const hashedResetToken =
+        crypto
+          .createHash("sha256")
+          .update(token)
+          .digest("hex");
+
+      db.query(
+        `
+        SELECT
+          id,
+          name,
+          email,
+          reset_token_expiry
+        FROM users
+        WHERE reset_token = ?
+        LIMIT 1
+        `,
+        [hashedResetToken],
+        async (err, results) => {
+
+          if (err) {
+
+            console.error(
+              "Reset Password DB Error:",
+              err
+            );
+
+            return res.status(500).json({
+              success: false,
+              message: "Database error."
+            });
+
+          }
+
+          if (results.length === 0) {
+
+            return res.status(400).json({
+              success: false,
+              message:
+                "Password reset link is invalid or has already been used."
+            });
+
+          }
+
+          const user = results[0];
+
+          // Check expiration
+          if (
+            !user.reset_token_expiry ||
+            new Date(user.reset_token_expiry) < new Date()
+          ) {
+
+            return res.status(400).json({
+              success: false,
+              message:
+                "This password reset link has expired."
+            });
+
+          }
+
+          // Create new password hash
+          const hashedPassword =
+            await bcrypt.hash(password, 10);
+
+          db.query(
+            `
+            UPDATE users
+            SET
+              password = ?,
+              reset_token = NULL,
+              reset_token_expiry = NULL
+            WHERE id = ?
+            `,
+            [
+              hashedPassword,
+              user.id
+            ],
+            (updateErr) => {
+
+              if (updateErr) {
+
+                console.error(
+                  "Update Password Error:",
+                  updateErr
+                );
+
+                return res.status(500).json({
+                  success: false,
+                  message:
+                    "Unable to reset password."
+                });
+
+              }
+
+              return res.json({
+                success: true,
+                message:
+                  "Password reset successful. You can now log in with your new password."
+              });
+
+            }
+          );
+
+        }
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Reset Password Error:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        message:
+          "Unable to reset password."
+      });
+
+    }
+
+  }
+);
+
+
+
+
+
 
 
 // =====================================
