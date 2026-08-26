@@ -323,12 +323,24 @@ Best regards,
 
 EJAR SOLUTIONS`;
 
-                const emailResult =
-                  await sendEmail(
-                    subject,
-                    emailText,
-                    cleanEmail
-                  );
+                const emailResult = await sendEmail(
+    "You're invited to EJAR SOLUTIONS",
+    `
+Hello ${name},
+
+You have been invited to join the EJAR SOLUTIONS dashboard as an ${role}.
+
+Please click the link below to activate your account:
+
+${inviteLink}
+
+This invitation expires in 24 hours.
+
+Best regards,
+EJAR SOLUTIONS
+    `,
+    email
+);
 
                 // -------------------------
                 // RESPONSE

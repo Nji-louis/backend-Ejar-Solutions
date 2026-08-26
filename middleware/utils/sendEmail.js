@@ -1,27 +1,89 @@
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 
-const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false,
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    },
-    tls: {
-        rejectUnauthorized: false
+const sendEmail = async (
+    subject,
+    text,
+    recipient
+) => {
+
+    if (!process.env.RESEND_API_KEY) {
+
+        console.error("RESEND_API_KEY is not configured.");
+
+        return {
+            success: false,
+            message: "Email service is not configured."
+        };
     }
-});
 
-const sendEmail = async (subject, text) => {
+    if (!recipient) {
 
-    await transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: process.env.EMAIL_USER,
-        subject,
-        text
-    });
+        console.error("No email recipient provided.");
 
+        return {
+            success: false,
+            message: "No email recipient provided."
+        };
+    }
+
+    try {
+
+        const resend = new Resend(
+            process.env.RESEND_API_KEY
+        );
+
+        const { data, error } =
+            await resend.emails.send({
+
+                // Resend testing sender
+                from: "EJAR SOLUTIONS <onboarding@resend.dev>",
+
+                to: recipient,
+
+                subject: subject,
+
+                text: text
+            });
+
+        if (error) {
+
+            console.error(
+                "Resend Email Error:",
+                error
+            );
+
+            return {
+                success: false,
+                error: error
+            };
+        }
+
+        console.log(
+            `Invitation email submitted to Resend: ${recipient}`
+        );
+
+        console.log(
+            "Resend Email ID:",
+            data?.id
+        );
+
+        return {
+            success: true,
+            data: data
+        };
+
+    } catch (error) {
+
+        console.error(
+            "Email Error:",
+            error
+        );
+
+        return {
+            success: false,
+            error: error
+        };
+    }
 };
 
 module.exports = sendEmail;
