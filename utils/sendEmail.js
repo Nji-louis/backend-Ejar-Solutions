@@ -1,74 +1,94 @@
 const { Resend } = require("resend");
 
 const sendEmail = async (
-
-    subject,
-    text,
-    recipient = process.env.EMAIL_USER
-
+  subject,
+  text,
+  recipient = process.env.EMAIL_USER
 ) => {
 
-    // Skip email if no API key is configured
+  if (!process.env.RESEND_API_KEY) {
+    console.error("❌ RESEND_API_KEY is missing.");
 
-    if (!process.env.RESEND_API_KEY) {
+    return {
+      success: false,
+      error: "RESEND_API_KEY is not configured."
+    };
+  }
 
-        console.warn(
-            "⚠️ RESEND_API_KEY not configured. Email skipped."
-        );
+  if (!recipient) {
+    console.error("❌ No recipient email address provided.");
 
-        return {
+    return {
+      success: false,
+      error: "Recipient email is missing."
+    };
+  }
 
-            success: false,
-            message: "Email service disabled during development."
+  try {
 
-        };
+    const resend = new Resend(
+      process.env.RESEND_API_KEY
+    );
 
-    }
+    const { data, error } = await resend.emails.send({
 
-    try {
+      from: "EJAR SOLUTIONS <onboarding@resend.dev>",
 
-        const resend = new Resend(
-            process.env.RESEND_API_KEY
-        );
+      to: [recipient],
 
-        const response = await resend.emails.send({
+      subject,
 
-            from: "EJAR SOLUTIONS <onboarding@resend.dev>",
+      text
 
-            to: recipient, // IMPORTANT: send to the provided email
+    });
 
-            subject,
+    if (error) {
 
-            text,
+      console.error(
+        "❌ Resend Email Error:",
+        error
+      );
 
-        });
-
-        console.log(
-            `Email sent to: ${recipient}`
-        );
-
-        return response;
-
-    } catch (error) {
-
-        console.error(
-            "Email Error:",
-            error
-        );
-
-        return {
-
-            success: false,
-            message: "Failed to send email."
-
-        };
+      return {
+        success: false,
+        error
+      };
 
     }
+
+    console.log(
+      "✅ Email accepted by Resend."
+    );
+
+    console.log(
+      "📧 Recipient:",
+      recipient
+    );
+
+    console.log(
+      "📨 Resend Email ID:",
+      data?.id
+    );
+
+    return {
+      success: true,
+      data
+    };
+
+  } catch (error) {
+
+    console.error(
+      "❌ Email Sending Exception:",
+      error
+    );
+
+    return {
+      success: false,
+      error: error.message || error
+    };
+
+  }
 
 };
 
 module.exports = sendEmail;
-
-
-
-

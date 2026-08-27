@@ -91,6 +91,8 @@ router.post("/login", (req, res) => {
 
 
 
+
+
 // =====================================
 // FORGOT PASSWORD
 // =====================================
@@ -178,9 +180,10 @@ router.post("/forgot-password", (req, res) => {
 
           try {
 
-            await sendEmail(
-              "Reset Your EJAR SOLUTIONS Password",
-              `Hello ${user.name},
+  const emailResult = await sendEmail(
+    "Reset Your EJAR SOLUTIONS Password",
+
+    `Hello ${user.name},
 
 We received a request to reset your EJAR SOLUTIONS dashboard password.
 
@@ -194,177 +197,54 @@ If you did not request a password reset, you can safely ignore this email.
 
 Best regards,
 EJAR SOLUTIONS
-Business Support Services`
-            );
+Business Support Services`,
 
-            console.log(
-              `Password reset email sent to: ${user.email}`
-            );
-
-            return res.json({
-              success: true,
-              message:
-                "Password reset instructions have been sent to your email."
-            });
-
-          } catch (emailError) {
-
-            console.error(
-              "Password Reset Email Error:",
-              emailError
-            );
-
-            return res.status(500).json({
-              success: false,
-              message:
-                "Unable to send password reset email."
-            });
-
-          }
-
-        }
-      );
-
-    }
+    user.email
   );
 
-});
+  if (!emailResult || !emailResult.success) {
 
+    console.error(
+      "❌ Password reset email was NOT sent:",
+      emailResult?.error
+    );
 
-
-
-
-// =====================================
-// FORGOT PASSWORD
-// =====================================
-
-router.post("/forgot-password", (req, res) => {
-
-  const { email } = req.body;
-
-  if (!email) {
-    return res.status(400).json({
+    return res.status(500).json({
       success: false,
-      message: "Email address is required."
+      message:
+        "Unable to send password reset email."
     });
+
   }
 
-  db.query(
-    "SELECT id, name, email FROM users WHERE email = ? LIMIT 1",
-    [email],
-    async (err, results) => {
+  console.log(
+    `✅ Password reset email sent to: ${user.email}`
+  );
 
-      if (err) {
-        console.error("Forgot Password DB Error:", err);
+  console.log(
+    `📨 Resend ID: ${emailResult.data?.id}`
+  );
 
-        return res.status(500).json({
-          success: false,
-          message: "Database error."
-        });
-      }
+  return res.json({
+    success: true,
+    message:
+      "Password reset instructions have been sent to your email."
+  });
 
-      if (results.length === 0) {
-        return res.status(404).json({
-          success: false,
-          message: "No account was found with this email address."
-        });
-      }
+} catch (emailError) {
 
-      const user = results[0];
+  console.error(
+    "❌ Password Reset Email Error:",
+    emailError
+  );
 
-      // Generate secure random token
-      const resetToken =
-        crypto.randomBytes(32).toString("hex");
+  return res.status(500).json({
+    success: false,
+    message:
+      "Unable to send password reset email."
+  });
 
-      // Hash token before storing it
-      const hashedResetToken =
-        crypto
-          .createHash("sha256")
-          .update(resetToken)
-          .digest("hex");
-
-      // Token expires in 1 hour
-      const resetTokenExpiry =
-        new Date(Date.now() + 60 * 60 * 1000);
-
-      db.query(
-        `
-        UPDATE users
-        SET
-          reset_token = ?,
-          reset_token_expiry = ?
-        WHERE id = ?
-        `,
-        [
-          hashedResetToken,
-          resetTokenExpiry,
-          user.id
-        ],
-        async (updateErr) => {
-
-          if (updateErr) {
-
-            console.error(
-              "Save Reset Token Error:",
-              updateErr
-            );
-
-            return res.status(500).json({
-              success: false,
-              message: "Unable to create password reset request."
-            });
-
-          }
-
-          const resetLink =
-            `https://ejar-solutions-main.onrender.com/admin/reset-password.html?token=${resetToken}`;
-
-          try {
-
-            await sendEmail(
-              "Reset Your EJAR SOLUTIONS Password",
-              `Hello ${user.name},
-
-We received a request to reset your EJAR SOLUTIONS dashboard password.
-
-Click the link below to create a new password:
-
-${resetLink}
-
-This link will expire in 1 hour.
-
-If you did not request a password reset, you can safely ignore this email.
-
-Best regards,
-EJAR SOLUTIONS
-Business Support Services`
-            );
-
-            console.log(
-              `Password reset email sent to: ${user.email}`
-            );
-
-            return res.json({
-              success: true,
-              message:
-                "Password reset instructions have been sent to your email."
-            });
-
-          } catch (emailError) {
-
-            console.error(
-              "Password Reset Email Error:",
-              emailError
-            );
-
-            return res.status(500).json({
-              success: false,
-              message:
-                "Unable to send password reset email."
-            });
-
-          }
-
+}  
         }
       );
 
