@@ -55,7 +55,7 @@ router.get(
   (req, res) => {
 
     db.query(
-      "SELECT id,name,email,role,created_at FROM users",
+      "SELECT id,name,email,role,status,email_verified,created_at FROM users",
       (err, results) => {
 
         if (err) {
