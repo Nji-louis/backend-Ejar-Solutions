@@ -3,6 +3,9 @@ const router = express.Router();
 
 const db = require("../config/db");
 
+const verifyToken = require("../middleware/authMiddleware");
+const verifyEditorOrAdmin = require("../middleware/editorMiddleware");
+
 // ======================
 // SUBSCRIBE
 // ======================
@@ -55,5 +58,94 @@ router.post("/", (req, res) => {
     );
 
 });
+
+
+// ======================
+// GET ALL SUBSCRIBERS
+// ADMIN / EDITOR ONLY
+// ======================
+
+router.get(
+    "/",
+    verifyToken,
+    verifyEditorOrAdmin,
+    (req, res) => {
+
+        db.query(
+            "SELECT * FROM newsletter_subscribers ORDER BY created_at DESC",
+            (err, results) => {
+
+                if (err) {
+
+                    console.error(
+                        "Newsletter Subscribers Error:",
+                        err
+                    );
+
+                    return res.status(500).json({
+                        success: false,
+                        message: "Unable to load subscribers."
+                    });
+
+                }
+
+                res.json(results);
+
+            }
+        );
+
+    }
+);
+
+
+// ======================
+// DELETE SUBSCRIBER
+// ADMIN / EDITOR ONLY
+// ======================
+
+router.delete(
+    "/:id",
+    verifyToken,
+    verifyEditorOrAdmin,
+    (req, res) => {
+
+        db.query(
+            "DELETE FROM newsletter_subscribers WHERE id = ?",
+            [req.params.id],
+            (err, result) => {
+
+                if (err) {
+
+                    console.error(
+                        "Newsletter Delete Error:",
+                        err
+                    );
+
+                    return res.status(500).json({
+                        success: false,
+                        message: "Unable to delete subscriber."
+                    });
+
+                }
+
+                if (result.affectedRows === 0) {
+
+                    return res.status(404).json({
+                        success: false,
+                        message: "Subscriber not found."
+                    });
+
+                }
+
+                res.json({
+                    success: true,
+                    message: "Subscriber deleted successfully."
+                });
+
+            }
+        );
+
+    }
+);
 
 module.exports = router;
