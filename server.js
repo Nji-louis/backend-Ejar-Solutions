@@ -34,6 +34,7 @@ const settingsRoutes = require("./routes/settingsRoutes");
 const newsletterRoutes = require("./routes/newsletterRoutes");
 const testimonialRoutes = require("./routes/testimonialRoutes");
 const faqRoutes = require("./routes/faqRoutes");
+const teamRoutes = require("./routes/teamRoutes");
 
 
 
@@ -49,6 +50,7 @@ app.use("/api/settings", settingsRoutes);
 app.use("/api/newsletter", newsletterRoutes);
 app.use("/api/testimonials", testimonialRoutes);
 app.use("/api/faqs", faqRoutes);
+app.use("/api/team", teamRoutes);
 
 
 app.get("/", (req, res) => {

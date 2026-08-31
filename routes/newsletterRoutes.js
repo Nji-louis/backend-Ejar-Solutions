@@ -3,6 +3,8 @@ const router = express.Router();
 
 const db = require("../config/db");
 
+const sendEmail = require("../utils/sendEmail");
+
 const verifyToken = require("../middleware/authMiddleware");
 const verifyEditorOrAdmin = require("../middleware/editorMiddleware");
 
@@ -90,6 +92,93 @@ router.get(
                 }
 
                 res.json(results);
+
+            }
+        );
+
+    }
+);
+
+
+// ======================
+// SEND NEWSLETTER
+// ADMIN / EDITOR ONLY
+// ======================
+
+router.post(
+    "/send",
+    verifyToken,
+    verifyEditorOrAdmin,
+    async (req, res) => {
+
+        const { subject, message } = req.body;
+
+        if (!subject || !message) {
+
+            return res.status(400).json({
+                success: false,
+                message: "Subject and message are required."
+            });
+
+        }
+
+        db.query(
+            "SELECT email FROM newsletter_subscribers ORDER BY created_at ASC",
+            async (err, subscribers) => {
+
+                if (err) {
+
+                    console.error(
+                        "Newsletter Subscribers Error:",
+                        err
+                    );
+
+                    return res.status(500).json({
+                        success: false,
+                        message: "Unable to load subscribers."
+                    });
+
+                }
+
+                if (subscribers.length === 0) {
+
+                    return res.status(400).json({
+                        success: false,
+                        message: "There are no newsletter subscribers."
+                    });
+
+                }
+
+                let sent = 0;
+                let failed = 0;
+
+                for (const subscriber of subscribers) {
+
+                    const result = await sendEmail(
+                        subject,
+                        message,
+                        subscriber.email
+                    );
+
+                    if (result && result.success) {
+
+                        sent++;
+
+                    } else {
+
+                        failed++;
+
+                    }
+
+                }
+
+                res.json({
+                    success: true,
+                    message: "Newsletter sending completed.",
+                    total: subscribers.length,
+                    sent,
+                    failed
+                });
 
             }
         );
