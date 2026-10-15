@@ -1,4 +1,8 @@
-require("dotenv").config();
+try {
+  require("dotenv").config();
+} catch (error) {
+  console.warn("dotenv unavailable; using hosting environment variables.");
+}
 
 
 const express = require("express");
