@@ -1,7 +1,7 @@
 const token = localStorage.getItem("token");
 
 fetch(
-    "https://backend-qai6.onrender.com/api/admin/dashboard",
+    "https://api.ejargroup.com/api/admin/dashboard",
     {
         headers: {
             Authorization: `Bearer ${token}`
