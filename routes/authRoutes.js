@@ -176,7 +176,7 @@ router.post("/forgot-password", (req, res) => {
           }
 
           const resetLink =
-            `https://ejar-solutions-main.onrender.com/admin/reset-password.html?token=${resetToken}`;
+            `https://api.ejargroup.com/admin/reset-password.html?token=${resetToken}`;
 
           try {
 

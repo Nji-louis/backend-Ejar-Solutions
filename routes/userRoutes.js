@@ -211,7 +211,7 @@ const inviteExpires =
               }
 
               const inviteLink =
-                `https://ejar-solutions-main.onrender.com/admin/accept-invite.html?token=${inviteToken}`;
+                `https://api.ejargroup.com/admin/accept-invite.html?token=${inviteToken}`;
 
               const emailResult = await sendEmail(
                 "You're invited to EJAR SOLUTIONS",
