@@ -32,7 +32,7 @@ const sendEmail = async (
 
     const { data, error } = await resend.emails.send({
 
-      from: "EJAR SOLUTIONS <onboarding@resend.dev>",
+      from: "EJAR SOLUTIONS <noreply@ejargroup.com>",
 
       to: [recipient],
 
