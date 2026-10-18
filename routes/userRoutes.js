@@ -11,6 +11,20 @@ const sendEmail = require("../utils/sendEmail");
 const verifyToken = require("../middleware/authMiddleware");
 const verifyAdmin = require("../middleware/adminMiddleware");
 
+const DEFAULT_FRONTEND_URL = "https://ejargroup.com";
+
+const createInviteLink = (token) => {
+  const frontendUrl = new URL(
+    process.env.FRONTEND_URL || DEFAULT_FRONTEND_URL
+  );
+
+  frontendUrl.pathname = "/admin/accept-invite.html";
+  frontendUrl.search = "";
+  frontendUrl.searchParams.set("token", token);
+
+  return frontendUrl.toString();
+};
+
 
 // ==========================
 // GET USER PROFILE
@@ -139,6 +153,21 @@ router.post(
         });
       }
 
+      const inviteToken = crypto.randomBytes(32).toString("hex");
+      let inviteLink;
+
+      try {
+        // The activation page belongs to the frontend, not this API service.
+        // Validate it before creating a pending user.
+        inviteLink = createInviteLink(inviteToken);
+      } catch (error) {
+        console.error("Invalid FRONTEND_URL for invitation links:", error);
+        return res.status(500).json({
+          success: false,
+          message: "Invitation link configuration is invalid."
+        });
+      }
+
       db.query(
         "SELECT id FROM users WHERE email = ? LIMIT 1",
         [email],
@@ -157,9 +186,6 @@ router.post(
               message: "A user with this email already exists."
             });
           }
-
-          const inviteToken =
-  crypto.randomBytes(32).toString("hex");
 
 const hashedInviteToken =
   crypto
@@ -209,9 +235,6 @@ const inviteExpires =
                   message: "Unable to create invitation."
                 });
               }
-
-              const inviteLink =
-                `https://api.ejargroup.com/admin/accept-invite.html?token=${inviteToken}`;
 
               const emailResult = await sendEmail(
                 "You're invited to EJAR SOLUTIONS",

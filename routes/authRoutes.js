@@ -175,8 +175,15 @@ router.post("/forgot-password", (req, res) => {
 
           }
 
-          const resetLink =
-            `https://api.ejargroup.com/admin/reset-password.html?token=${resetToken}`;
+          const frontendUrl = new URL(
+            process.env.FRONTEND_URL || "https://ejargroup.com"
+          );
+
+          frontendUrl.pathname = "/admin/reset-password.html";
+          frontendUrl.search = "";
+          frontendUrl.searchParams.set("token", resetToken);
+
+          const resetLink = frontendUrl.toString();
 
           try {
 

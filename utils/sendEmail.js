@@ -1,5 +1,7 @@
 const { Resend } = require("resend");
 
+const DEFAULT_SENDER = "EJAR SOLUTIONS <noreply@ejargroup.com>";
+
 const sendEmail = async (
   subject,
   text,
@@ -32,7 +34,9 @@ const sendEmail = async (
 
     const { data, error } = await resend.emails.send({
 
-      from: "EJAR SOLUTIONS <noreply@ejargroup.com>",
+      // The address must be verified in Resend. Production can override this
+      // without a code change by setting RESEND_FROM_EMAIL.
+      from: process.env.RESEND_FROM_EMAIL || DEFAULT_SENDER,
 
       to: [recipient],
 
