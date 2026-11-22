@@ -729,4 +729,217 @@ router.delete("/why/:id", verifyToken, verifyAdmin, (req,res)=>{
 
 
 
+
+
+/* ==========================================
+   HOMEPAGE HERO SLIDER
+========================================== */
+
+// GET ALL HERO SLIDES (ADMIN DASHBOARD)
+router.get("/hero", verifyToken, verifyEditorOrAdmin, (req, res) => {
+    db.query(
+        "SELECT * FROM hero_slides ORDER BY sort_order ASC, id ASC",
+        (err, results) => {
+            if (err) {
+                console.error("Hero slides error:", err);
+                return res.status(500).json({
+                    success: false,
+                    message: "Unable to load hero slides."
+                });
+            }
+
+            res.json(results);
+        }
+    );
+});
+
+
+// GET ACTIVE HERO SLIDES (PUBLIC WEBSITE)
+router.get("/public/hero", (req, res) => {
+    db.query(
+        `SELECT * FROM hero_slides
+         WHERE status = 'active'
+         ORDER BY sort_order ASC, id ASC`,
+        (err, results) => {
+            if (err) {
+                console.error("Public hero error:", err);
+                return res.status(500).json({
+                    success: false,
+                    message: "Unable to load homepage slides."
+                });
+            }
+
+            res.json(results);
+        }
+    );
+});
+
+
+// CREATE HERO SLIDE
+router.post("/hero", verifyToken, verifyEditorOrAdmin, (req, res) => {
+    const {
+        title,
+        subtitle,
+        description,
+        image,
+        button1_text,
+        button1_url,
+        button2_text,
+        button2_url,
+        sort_order,
+        status
+    } = req.body;
+
+    if (!title || !title.trim()) {
+        return res.status(400).json({
+            success: false,
+            message: "Hero title is required."
+        });
+    }
+
+    db.query(
+        `INSERT INTO hero_slides
+        (
+            title, subtitle, description, image,
+            button1_text, button1_url,
+            button2_text, button2_url,
+            sort_order, status
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+            title.trim(),
+            subtitle || "",
+            description || "",
+            image || "",
+            button1_text || "",
+            button1_url || "",
+            button2_text || "",
+            button2_url || "",
+            Number(sort_order) || 0,
+            status === "inactive" ? "inactive" : "active"
+        ],
+        (err, result) => {
+            if (err) {
+                console.error("Create hero error:", err);
+                return res.status(500).json({
+                    success: false,
+                    message: "Unable to create hero slide."
+                });
+            }
+
+            res.status(201).json({
+                success: true,
+                id: result.insertId,
+                message: "Hero slide created successfully."
+            });
+        }
+    );
+});
+
+
+// UPDATE HERO SLIDE
+router.put("/hero/:id", verifyToken, verifyEditorOrAdmin, (req, res) => {
+    const {
+        title,
+        subtitle,
+        description,
+        image,
+        button1_text,
+        button1_url,
+        button2_text,
+        button2_url,
+        sort_order,
+        status
+    } = req.body;
+
+    if (!title || !title.trim()) {
+        return res.status(400).json({
+            success: false,
+            message: "Hero title is required."
+        });
+    }
+
+    db.query(
+        `UPDATE hero_slides SET
+            title = ?,
+            subtitle = ?,
+            description = ?,
+            image = ?,
+            button1_text = ?,
+            button1_url = ?,
+            button2_text = ?,
+            button2_url = ?,
+            sort_order = ?,
+            status = ?
+         WHERE id = ?`,
+        [
+            title.trim(),
+            subtitle || "",
+            description || "",
+            image || "",
+            button1_text || "",
+            button1_url || "",
+            button2_text || "",
+            button2_url || "",
+            Number(sort_order) || 0,
+            status === "inactive" ? "inactive" : "active",
+            req.params.id
+        ],
+        (err, result) => {
+            if (err) {
+                console.error("Update hero error:", err);
+                return res.status(500).json({
+                    success: false,
+                    message: "Unable to update hero slide."
+                });
+            }
+
+            if (!result.affectedRows) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Hero slide not found."
+                });
+            }
+
+            res.json({
+                success: true,
+                message: "Hero slide updated successfully."
+            });
+        }
+    );
+});
+
+
+// DELETE HERO SLIDE
+router.delete("/hero/:id", verifyToken, verifyAdmin, (req, res) => {
+    db.query(
+        "DELETE FROM hero_slides WHERE id = ?",
+        [req.params.id],
+        (err, result) => {
+            if (err) {
+                console.error("Delete hero error:", err);
+                return res.status(500).json({
+                    success: false,
+                    message: "Unable to delete hero slide."
+                });
+            }
+
+            if (!result.affectedRows) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Hero slide not found."
+                });
+            }
+
+            res.json({
+                success: true,
+                message: "Hero slide deleted successfully."
+            });
+        }
+    );
+});
+
+
+
+
 module.exports = router;

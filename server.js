@@ -36,6 +36,8 @@ const newsletterRoutes = require("./routes/newsletterRoutes");
 const testimonialRoutes = require("./routes/testimonialRoutes");
 const faqRoutes = require("./routes/faqRoutes");
 const teamRoutes = require("./routes/teamRoutes");
+const serviceRoutes = require("./routes/serviceRoutes");
+const serviceCategoryRoutes = require("./routes/serviceCategoryRoutes");
 
 
 
@@ -52,6 +54,9 @@ app.use("/api/newsletter", newsletterRoutes);
 app.use("/api/testimonials", testimonialRoutes);
 app.use("/api/faqs", faqRoutes);
 app.use("/api/team", teamRoutes);
+app.use("/api/services", serviceRoutes);
+app.use("/api/service-categories", serviceCategoryRoutes);
+
 
 
 app.get("/", (req, res) => {
