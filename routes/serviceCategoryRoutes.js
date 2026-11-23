@@ -31,9 +31,13 @@ router.get("/public", (req, res) => {
 // GET ALL SERVICE CATEGORIES
 router.get("/", verifyToken, verifyEditorOrAdmin, (req, res) => {
     const sql = `
-        SELECT *
-        FROM service_categories
-        ORDER BY display_order ASC, id ASC
+        SELECT
+            c.*,
+            g.name AS group_name
+        FROM service_categories c
+        LEFT JOIN service_groups g
+            ON c.group_id = g.id
+        ORDER BY c.display_order ASC, c.id ASC
     `;
 
     db.query(sql, (err, results) => {
@@ -78,6 +82,7 @@ router.post("/", verifyToken, verifyEditorOrAdmin, (req, res) => {
         name,
         slug,
         description,
+        group_id,
         display_order,
         show_on_homepage,
         status
@@ -91,14 +96,15 @@ router.post("/", verifyToken, verifyEditorOrAdmin, (req, res) => {
 
     const sql = `
         INSERT INTO service_categories
-        (name, slug, description, display_order, show_on_homepage, status)
-        VALUES (?, ?, ?, ?, ?, ?)
+        (name, slug, description, group_id, display_order, show_on_homepage, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
 
     const values = [
         name.trim(),
         slug.trim(),
         description || null,
+        Number.isInteger(Number(group_id)) && Number(group_id) > 0 ? Number(group_id) : null,
         Number.isInteger(Number(display_order)) ? Number(display_order) : 0,
         show_on_homepage === false || show_on_homepage === 0 ? 0 : 1,
         status === "inactive" ? "inactive" : "active"
@@ -131,6 +137,7 @@ router.put("/:id", verifyToken, verifyEditorOrAdmin, (req, res) => {
         name,
         slug,
         description,
+        group_id,
         display_order,
         show_on_homepage,
         status
@@ -147,6 +154,7 @@ router.put("/:id", verifyToken, verifyEditorOrAdmin, (req, res) => {
         SET name = ?,
             slug = ?,
             description = ?,
+            group_id = ?,
             display_order = ?,
             show_on_homepage = ?,
             status = ?
@@ -157,6 +165,7 @@ router.put("/:id", verifyToken, verifyEditorOrAdmin, (req, res) => {
         name.trim(),
         slug.trim(),
         description || null,
+        Number.isInteger(Number(group_id)) && Number(group_id) > 0 ? Number(group_id) : null,
         Number.isInteger(Number(display_order)) ? Number(display_order) : 0,
         show_on_homepage === false || show_on_homepage === 0 ? 0 : 1,
         status === "inactive" ? "inactive" : "active",
@@ -191,26 +200,47 @@ router.put("/:id", verifyToken, verifyEditorOrAdmin, (req, res) => {
 
 // DELETE SERVICE CATEGORY
 router.delete("/:id", verifyToken, verifyEditorOrAdmin, (req, res) => {
+    const categoryId = req.params.id;
+
     db.query(
-        "DELETE FROM service_categories WHERE id = ?",
-        [req.params.id],
-        (err, result) => {
-            if (err) {
-                console.error("Delete service category error:", err);
+        "SELECT COUNT(*) AS serviceCount FROM services WHERE category_id = ?",
+        [categoryId],
+        (checkError, rows) => {
+            if (checkError) {
+                console.error("Check category services error:", checkError);
                 return res.status(500).json({
-                    message: "Failed to delete service category."
+                    message: "Unable to check services assigned to this category."
                 });
             }
 
-            if (result.affectedRows === 0) {
-                return res.status(404).json({
-                    message: "Service category not found."
+            if (Number(rows[0].serviceCount) > 0) {
+                return res.status(409).json({
+                    message: "This category cannot be deleted because it still contains services. Reassign or delete those services first."
                 });
             }
 
-            res.json({
-                message: "Service category deleted successfully. Existing services have been preserved."
-            });
+            db.query(
+                "DELETE FROM service_categories WHERE id = ?",
+                [categoryId],
+                (err, result) => {
+                    if (err) {
+                        console.error("Delete service category error:", err);
+                        return res.status(500).json({
+                            message: "Failed to delete service category."
+                        });
+                    }
+
+                    if (result.affectedRows === 0) {
+                        return res.status(404).json({
+                            message: "Service category not found."
+                        });
+                    }
+
+                    res.json({
+                        message: "Service category deleted successfully."
+                    });
+                }
+            );
         }
     );
 });

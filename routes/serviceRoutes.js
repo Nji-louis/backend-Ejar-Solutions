@@ -12,7 +12,8 @@ router.get("/public", (req, res) => {
         SELECT
             s.*,
             c.name AS category_name,
-            c.slug AS category_slug
+            c.slug AS category_slug,
+            c.group_id AS group_id
         FROM services s
         INNER JOIN service_categories c
             ON s.category_id = c.id
@@ -39,10 +40,14 @@ router.get("/", verifyToken, verifyEditorOrAdmin, (req, res) => {
        `
     SELECT
         s.*,
-        c.name AS category_name
+        c.name AS category_name,
+        c.group_id AS group_id,
+        g.name AS group_name
     FROM services s
     LEFT JOIN service_categories c
         ON s.category_id = c.id
+    LEFT JOIN service_groups g
+        ON c.group_id = g.id
     ORDER BY s.created_at DESC
 `,
         (err, results) => {

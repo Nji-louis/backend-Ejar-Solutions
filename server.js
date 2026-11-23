@@ -38,6 +38,7 @@ const faqRoutes = require("./routes/faqRoutes");
 const teamRoutes = require("./routes/teamRoutes");
 const serviceRoutes = require("./routes/serviceRoutes");
 const serviceCategoryRoutes = require("./routes/serviceCategoryRoutes");
+const serviceGroupRoutes = require("./routes/serviceGroupRoutes");
 
 
 
@@ -56,6 +57,7 @@ app.use("/api/faqs", faqRoutes);
 app.use("/api/team", teamRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/service-categories", serviceCategoryRoutes);
+app.use("/api/service-groups", serviceGroupRoutes);
 
 
 
