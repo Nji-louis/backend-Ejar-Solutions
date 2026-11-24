@@ -9,7 +9,7 @@ const verifyEditorOrAdmin = require("../middleware/editorMiddleware");
 // PUBLIC: GET HOMEPAGE SERVICE CATEGORIES
 router.get("/public", (req, res) => {
     const sql = `
-        SELECT id, name, slug, description, display_order
+        SELECT id, name, slug, description, group_id, display_order
         FROM service_categories
         WHERE status = 'active'
           AND show_on_homepage = 1

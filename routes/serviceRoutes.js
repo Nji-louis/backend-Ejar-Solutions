@@ -34,6 +34,17 @@ router.get("/public", (req, res) => {
     });
 });
 
+
+// PUBLIC: GET ONE ACTIVE SERVICE BY SLUG
+router.get("/public/:slug", (req, res) => {
+    const sql = "SELECT s.*, c.name AS category_name, c.slug AS category_slug, c.group_id AS group_id, g.name AS group_name FROM services s INNER JOIN service_categories c ON s.category_id = c.id LEFT JOIN service_groups g ON c.group_id = g.id WHERE s.slug = ? AND s.status = ? AND c.status = ? LIMIT 1";
+    db.query(sql, [req.params.slug, "active", "active"], (err, results) => {
+        if (err) return res.status(500).json({ message: "Failed to retrieve service details." });
+        if (!results.length) return res.status(404).json({ message: "Service not found." });
+        res.json(results[0]);
+    });
+});
+
 // GET ALL SERVICES
 router.get("/", verifyToken, verifyEditorOrAdmin, (req, res) => {
     db.query(
