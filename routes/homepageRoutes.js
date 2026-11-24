@@ -942,4 +942,314 @@ router.delete("/hero/:id", verifyToken, verifyAdmin, (req, res) => {
 
 
 
+
+// ==========================================
+// ABOUT SECTION API
+// ==========================================
+
+// GET ABOUT CONTENT - ADMIN
+router.get("/about", verifyToken, verifyEditorOrAdmin, (req, res) => {
+    db.query("SELECT * FROM homepage_about ORDER BY id ASC LIMIT 1", (err, results) => {
+        if (err) {
+            console.error("Get About error:", err);
+            return res.status(500).json({
+                success: false,
+                message: "Unable to load About content."
+            });
+        }
+
+        res.json(results[0] || {});
+    });
+});
+
+// GET ABOUT CONTENT - PUBLIC
+router.get("/public/about", (req, res) => {
+    db.query("SELECT * FROM homepage_about ORDER BY id ASC LIMIT 1", (err, results) => {
+        if (err) {
+            console.error("Public About error:", err);
+            return res.status(500).json({
+                success: false,
+                message: "Unable to load About content."
+            });
+        }
+
+        res.json(results[0] || {});
+    });
+});
+
+// UPDATE ABOUT CONTENT
+router.put("/about", verifyToken, verifyEditorOrAdmin, (req, res) => {
+    const {
+        heading,
+        subtitle,
+        description,
+        image,
+        experience_years,
+        button_text,
+        button_url,
+        section_label,
+        company_heading,
+        description2,
+        description3,
+        description4,
+        description5,
+        slogan
+    } = req.body;
+
+    const values = [
+        heading || "",
+        subtitle || "",
+        description || "",
+        image || "",
+        experience_years || "",
+        button_text || "",
+        button_url || "",
+        section_label || "",
+        company_heading || "",
+        description2 || "",
+        description3 || "",
+        description4 || "",
+        description5 || "",
+        slogan || ""
+    ];
+
+    db.query(
+        `UPDATE homepage_about SET
+            heading = ?,
+            subtitle = ?,
+            description = ?,
+            image = ?,
+            experience_years = ?,
+            button_text = ?,
+            button_url = ?,
+            section_label = ?,
+            company_heading = ?,
+            description2 = ?,
+            description3 = ?,
+            description4 = ?,
+            description5 = ?,
+            slogan = ?
+         WHERE id = (SELECT id FROM (SELECT id FROM homepage_about ORDER BY id ASC LIMIT 1) AS first_about)`,
+        values,
+        (err, result) => {
+            if (err) {
+                console.error("Update About error:", err);
+                return res.status(500).json({
+                    success: false,
+                    message: "Unable to update About content."
+                });
+            }
+
+            if (!result.affectedRows) {
+                return res.status(404).json({
+                    success: false,
+                    message: "About record not found."
+                });
+            }
+
+            res.json({
+                success: true,
+                message: "About content updated successfully."
+            });
+        }
+    );
+});
+
+
+// ==========================================
+// ABOUT PILLARS API
+// ==========================================
+
+// GET ALL PILLARS - ADMIN
+router.get("/about/pillars", verifyToken, verifyEditorOrAdmin, (req, res) => {
+    db.query(
+        "SELECT * FROM homepage_about_pillars ORDER BY sort_order ASC, id ASC",
+        (err, results) => {
+            if (err) {
+                console.error("Get About Pillars error:", err);
+                return res.status(500).json({
+                    success: false,
+                    message: "Unable to load About pillars."
+                });
+            }
+
+            res.json(results);
+        }
+    );
+});
+
+// GET ACTIVE PILLARS - PUBLIC
+router.get("/public/about/pillars", (req, res) => {
+    db.query(
+        "SELECT * FROM homepage_about_pillars WHERE status = 'active' ORDER BY sort_order ASC, id ASC",
+        (err, results) => {
+            if (err) {
+                console.error("Public About Pillars error:", err);
+                return res.status(500).json({
+                    success: false,
+                    message: "Unable to load About pillars."
+                });
+            }
+
+            res.json(results);
+        }
+    );
+});
+
+// CREATE PILLAR
+router.post("/about/pillars", verifyToken, verifyEditorOrAdmin, (req, res) => {
+    const {
+        pillar_title,
+        column1_heading,
+        column2_heading,
+        column3_heading,
+        row1_item, row1_audience, row1_service, row1_benefit,
+        row2_item, row2_audience, row2_service, row2_benefit,
+        row3_item, row3_audience, row3_service, row3_benefit,
+        sort_order,
+        status
+    } = req.body;
+
+    if (!pillar_title || !pillar_title.trim()) {
+        return res.status(400).json({
+            success: false,
+            message: "Pillar title is required."
+        });
+    }
+
+    const values = [
+        pillar_title.trim(),
+        column1_heading || "Who We Help",
+        column2_heading || "What We Do",
+        column3_heading || "Why It Matters",
+        row1_item || "", row1_audience || "", row1_service || "", row1_benefit || "",
+        row2_item || "", row2_audience || "", row2_service || "", row2_benefit || "",
+        row3_item || "", row3_audience || "", row3_service || "", row3_benefit || "",
+        Number.isFinite(Number(sort_order)) ? Number(sort_order) : 0,
+        status === "inactive" ? "inactive" : "active"
+    ];
+
+    db.query(
+        `INSERT INTO homepage_about_pillars (
+            pillar_title, column1_heading, column2_heading, column3_heading,
+            row1_item, row1_audience, row1_service, row1_benefit,
+            row2_item, row2_audience, row2_service, row2_benefit,
+            row3_item, row3_audience, row3_service, row3_benefit,
+            sort_order, status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        values,
+        (err, result) => {
+            if (err) {
+                console.error("Create About Pillar error:", err);
+                return res.status(500).json({
+                    success: false,
+                    message: "Unable to create About pillar."
+                });
+            }
+
+            res.status(201).json({
+                success: true,
+                message: "About pillar created successfully.",
+                id: result.insertId
+            });
+        }
+    );
+});
+
+// UPDATE PILLAR
+router.put("/about/pillars/:id", verifyToken, verifyEditorOrAdmin, (req, res) => {
+    const {
+        pillar_title,
+        column1_heading,
+        column2_heading,
+        column3_heading,
+        row1_item, row1_audience, row1_service, row1_benefit,
+        row2_item, row2_audience, row2_service, row2_benefit,
+        row3_item, row3_audience, row3_service, row3_benefit,
+        sort_order,
+        status
+    } = req.body;
+
+    if (!pillar_title || !pillar_title.trim()) {
+        return res.status(400).json({
+            success: false,
+            message: "Pillar title is required."
+        });
+    }
+
+    const values = [
+        pillar_title.trim(),
+        column1_heading || "Who We Help",
+        column2_heading || "What We Do",
+        column3_heading || "Why It Matters",
+        row1_item || "", row1_audience || "", row1_service || "", row1_benefit || "",
+        row2_item || "", row2_audience || "", row2_service || "", row2_benefit || "",
+        row3_item || "", row3_audience || "", row3_service || "", row3_benefit || "",
+        Number.isFinite(Number(sort_order)) ? Number(sort_order) : 0,
+        status === "inactive" ? "inactive" : "active",
+        req.params.id
+    ];
+
+    db.query(
+        `UPDATE homepage_about_pillars SET
+            pillar_title = ?, column1_heading = ?, column2_heading = ?, column3_heading = ?,
+            row1_item = ?, row1_audience = ?, row1_service = ?, row1_benefit = ?,
+            row2_item = ?, row2_audience = ?, row2_service = ?, row2_benefit = ?,
+            row3_item = ?, row3_audience = ?, row3_service = ?, row3_benefit = ?,
+            sort_order = ?, status = ?
+         WHERE id = ?`,
+        values,
+        (err, result) => {
+            if (err) {
+                console.error("Update About Pillar error:", err);
+                return res.status(500).json({
+                    success: false,
+                    message: "Unable to update About pillar."
+                });
+            }
+
+            if (!result.affectedRows) {
+                return res.status(404).json({
+                    success: false,
+                    message: "About pillar not found."
+                });
+            }
+
+            res.json({
+                success: true,
+                message: "About pillar updated successfully."
+            });
+        }
+    );
+});
+
+// DELETE PILLAR - ADMIN ONLY
+router.delete("/about/pillars/:id", verifyToken, verifyAdmin, (req, res) => {
+    db.query(
+        "DELETE FROM homepage_about_pillars WHERE id = ?",
+        [req.params.id],
+        (err, result) => {
+            if (err) {
+                console.error("Delete About Pillar error:", err);
+                return res.status(500).json({
+                    success: false,
+                    message: "Unable to delete About pillar."
+                });
+            }
+
+            if (!result.affectedRows) {
+                return res.status(404).json({
+                    success: false,
+                    message: "About pillar not found."
+                });
+            }
+
+            res.json({
+                success: true,
+                message: "About pillar deleted successfully."
+            });
+        }
+    );
+});
+
 module.exports = router;
